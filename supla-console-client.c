@@ -46,7 +46,7 @@ int kbhit() {
 
 int main(int argc, char *argv[]) {
   struct TSuplaClientData *sclient = NULL;
-  Tsthread *client_loop_t = NULL;
+  Tsthread *cliThread = NULL;
 
   if (clientcfg_init(argc, argv) == 0) {
     clientcfg_free();
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
   st_hook_signals();
 
   // CLIENT LOOP
-  client_loop_t = sthread_simple_run(client_loop, (void *)&sclient, 0);
+  cliThread = sthread_simple_run(client_loop, (void *)&sclient, 0);
 
   // MAIN LOOP
 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
   }
 
   // RELEASE BLOCK
-  sthread_twf(client_loop_t);
+  sthread_twf(cliThread);
   st_mainloop_free();
   clientcfg_free();
 
