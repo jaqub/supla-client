@@ -45,7 +45,7 @@ int kbhit() {
 }
 
 int main(int argc, char *argv[]) {
-  struct TSuplaClientData *sclient = NULL;
+  struct TSuplaClientData *suplaClient = NULL;
   Tsthread *cliThread = NULL;
 
   if (clientcfg_init(argc, argv) == 0) {
@@ -72,43 +72,43 @@ int main(int argc, char *argv[]) {
   st_hook_signals();
 
   // CLIENT LOOP
-  cliThread = sthread_simple_run(client_loop, (void *)&sclient, 0);
+  cliThread = sthread_simple_run(client_loop, (void *)&suplaClient, 0);
 
   // MAIN LOOP
 
   while (st_app_terminate == 0) {
 		TCS_DeviceCalCfgRequest request;
 
-    if (input_off == 0 && sclient != NULL && kbhit() > 0) {
+    if (input_off == 0 && suplaClient != NULL && kbhit() > 0) {
       switch (getch()) {
         case '0':
-          supla_client_open(sclient, 14, 1, 0);
+          supla_client_open(suplaClient, 14, 1, 0);
           break;
         case '1':
-          supla_client_open(sclient, 14, 1, 1);
+          supla_client_open(suplaClient, 14, 1, 1);
           break;
         case '2':
-          supla_client_open(sclient, 14, 1, 2);
+          supla_client_open(suplaClient, 14, 1, 2);
           break;
 
         case '4':
-          supla_client_open(sclient, 28, 0, 1);
+          supla_client_open(suplaClient, 28, 0, 1);
           break;
         case '5':
-          supla_client_open(sclient, 29, 0, 1);
+          supla_client_open(suplaClient, 29, 0, 1);
           break;
         case '6':
-          supla_client_open(sclient, 30, 0, 1);
+          supla_client_open(suplaClient, 30, 0, 1);
           break;
         case '7':
-          supla_client_get_registration_enabled(sclient);
+          supla_client_get_registration_enabled(suplaClient);
           break;
         case 's':
-          supla_client_superuser_authorization_request(sclient, NULL, "abcd");
+          supla_client_superuser_authorization_request(suplaClient, NULL, "abcd");
           break;
         case 'c':
           memset(&request, 0, sizeof(TCS_DeviceCalCfgRequest));
-          supla_client_device_calcfg_request(sclient, &request);
+          supla_client_device_calcfg_request(suplaClient, &request);
           break;
       }
     }
