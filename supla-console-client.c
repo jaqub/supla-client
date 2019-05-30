@@ -45,7 +45,7 @@ int kbhit() {
 }
 
 int main(int argc, char *argv[]) {
-  void *client_loop_t = NULL;
+  Tsthread *client_loop_t = NULL;
 
   if (clientcfg_init(argc, argv) == 0) {
     clientcfg_free();

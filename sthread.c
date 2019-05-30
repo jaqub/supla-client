@@ -17,19 +17,10 @@
  */
 
 #include "sthread.h"
-#include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include "lck.h"
-
-typedef struct {
-  pthread_t _thread;
-  char terminated;
-  char finished;
-  void *lck;
-  Tsthread_params params;
-} Tsthread;
 
 void *_sthread_run(void *ptr) {
   Tsthread *sthread = (Tsthread *)ptr;
@@ -53,7 +44,7 @@ void *_sthread_run(void *ptr) {
   return 0;
 }
 
-void *sthread_run(Tsthread_params *sthread_params) {
+Tsthread *sthread_run(Tsthread_params *sthread_params) {
   Tsthread *sthread = malloc(sizeof(Tsthread));
 
   if (sthread == NULL) return NULL;
@@ -68,7 +59,7 @@ void *sthread_run(Tsthread_params *sthread_params) {
   return sthread;
 }
 
-void *sthread_simple_run(_func_sthread_execute execute, void *user_data,
+Tsthread *sthread_simple_run(_func_sthread_execute execute, void *user_data,
                          char free_on_finish) {
   Tsthread_params p;
   p.user_data = user_data;

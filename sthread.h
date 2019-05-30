@@ -19,6 +19,8 @@
 #ifndef STHREAD_H_
 #define STHREAD_H_
 
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,9 +37,17 @@ typedef struct {
   char free_on_finish;
 } Tsthread_params;
 
-void *sthread_simple_run(_func_sthread_execute execute, void *user_data,
+typedef struct {
+  pthread_t _thread;
+  char terminated;
+  char finished;
+  void *lck;
+  Tsthread_params params;
+} Tsthread;
+
+Tsthread *sthread_simple_run(_func_sthread_execute execute, void *user_data,
                          char free_on_finish);
-void *sthread_run(Tsthread_params *sthread_params);
+Tsthread *sthread_run(Tsthread_params *sthread_params);
 void sthread_wait(void *sthread);
 char sthread_isterminated(void *sthread);
 char sthread_isfinished(void *sthread);
