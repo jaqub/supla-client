@@ -45,6 +45,7 @@ int kbhit() {
 }
 
 int main(int argc, char *argv[]) {
+  struct TSuplaClientData *sclient = NULL;
   Tsthread *client_loop_t = NULL;
 
   if (clientcfg_init(argc, argv) == 0) {
@@ -71,7 +72,6 @@ int main(int argc, char *argv[]) {
   st_hook_signals();
 
   // CLIENT LOOP
-  void *sclient = NULL;
   client_loop_t = sthread_simple_run(client_loop, (void *)&sclient, 0);
 
   // MAIN LOOP

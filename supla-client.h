@@ -29,6 +29,8 @@ typedef struct {
   char *Caption;
 } TSuplaClientDeviceChannel;
 
+struct TSuplaClientData;
+
 typedef void (*_suplaclient_cb_on_versionerror)(void *_suplaclient,
                                                 void *user_data, int version,
                                                 int remote_version_min,
@@ -121,39 +123,41 @@ typedef struct {
   _suplaclient_cb_on_device_calcfg_result cb_on_device_calcfg_result;
 } TSuplaClientCfg;
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
 void supla_client_cfginit(TSuplaClientCfg *sclient_cfg);
 
 void *supla_client_init(TSuplaClientCfg *sclient_cfg);
-void supla_client_free(void *_scd);
-int supla_client_get_id(void *_suplaclient);
-char supla_client_connect(void *_suplaclient);
-char supla_client_connected(void *_suplaclient);
-char supla_client_registered(void *_suplaclient);
-void supla_client_disconnect(void *_suplaclient);
+void supla_client_free(struct TSuplaClientData *suplaClient);
+int supla_client_get_id(struct TSuplaClientData *suplaClient);
+char supla_client_connect(struct TSuplaClientData *suplaClient);
+char supla_client_connected(struct TSuplaClientData *suplaClient);
+char supla_client_registered(struct TSuplaClientData *suplaClient);
+void supla_client_disconnect(struct TSuplaClientData *suplaClient);
 
 // For _WIN32 wait_usec mean wait_msec
-char supla_client_iterate(void *_suplaclient, int wait_usec);
-void supla_client_raise_event(void *_suplaclient);
-void *supla_client_get_userdata(void *_suplaclient);
+char supla_client_iterate(struct TSuplaClientData *suplaClient, int wait_usec);
+void supla_client_raise_event(struct TSuplaClientData *suplaClient);
+void *supla_client_get_userdata(struct TSuplaClientData *suplaClient);
 
-char supla_client_send_raw_value(void *_suplaclient, int ID,
+char supla_client_send_raw_value(struct TSuplaClientData *suplaClient, int ID,
                                  char value[SUPLA_CHANNELVALUE_SIZE],
                                  char Target);
-char supla_client_open(void *_suplaclient, int ID, char group, char open);
-char supla_client_set_rgbw(void *_suplaclient, int ID, char group, int color,
+char supla_client_open(struct TSuplaClientData *suplaClient, int ID, char group, char open);
+char supla_client_set_rgbw(struct TSuplaClientData* suplaClient, int ID, char group, int color,
                            char color_brightness, char brightness);
-char supla_client_set_dimmer(void *_suplaclient, int ID, char group,
+char supla_client_set_dimmer(struct TSuplaClientData *suplaClient, int ID, char group,
                              char brightness);
-char supla_client_get_registration_enabled(void *_suplaclient);
-unsigned char supla_client_get_proto_version(void *_suplaclient);
-char supla_client_oauth_token_request(void *_suplaclient);
-char supla_client_superuser_authorization_request(void *_suplaclient,
+char supla_client_get_registration_enabled(struct TSuplaClientData *suplaClient);
+unsigned char supla_client_get_proto_version(struct TSuplaClientData *suplaClient);
+char supla_client_oauth_token_request(struct TSuplaClientData *suplaClient);
+char supla_client_superuser_authorization_request(struct TSuplaClientData *suplaClient,
                                                   char *email, char *password);
-char supla_client_device_calcfg_request(void *_suplaclient,
+char supla_client_device_calcfg_request(struct TSuplaClientData *suplaClient,
                                         TCS_DeviceCalCfgRequest *request);
 
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
 #include "supla-client.h"
 #include "supla-socket.h"
 
-typedef struct {
+struct TSuplaClientData {
   void *ssd;
   void *eh;
   void *srpc;
@@ -41,13 +41,14 @@ typedef struct {
   int server_activity_timeout;
 
   TSuplaClientCfg cfg;
-} TSuplaClientData;
+};
 
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <stdint.h>
+
 
 // http://stackoverflow.com/questions/10905892/equivalent-of-gettimeday-for-windows
 int gettimeofday(struct timeval *tp, struct timezone *tzp) {
@@ -71,17 +72,18 @@ int gettimeofday(struct timeval *tp, struct timezone *tzp) {
 #endif
 
 int supla_client_socket_read(void *buf, int count, void *scd) {
-  return ssocket_read(((TSuplaClientData *)scd)->ssd, NULL, buf, count);
+  struct TSuplaClientData *clientData = scd;
+  return ssocket_read(clientData->ssd, NULL, buf, count);
 }
 
 int supla_client_socket_write(void *buf, int count, void *scd) {
-  return ssocket_write(((TSuplaClientData *)scd)->ssd, NULL, buf, count);
+  return ssocket_write(((struct TSuplaClientData *)scd)->ssd, NULL, buf, count);
 }
 
 void supla_client_before_async_call(void *_srpc,
                                     unsigned _supla_int_t call_type,
                                     void *_scd) {
-  TSuplaClientData *scd = (TSuplaClientData *)_scd;
+  struct TSuplaClientData *scd = (struct TSuplaClientData *)_scd;
   gettimeofday(&scd->last_call_sent, NULL);
 }
 
@@ -89,7 +91,7 @@ void supla_client_on_min_version_required(void *_srpc,
                                           unsigned _supla_int_t call_type,
                                           unsigned char min_version,
                                           void *_scd) {
-  TSuplaClientData *scd = (TSuplaClientData *)_scd;
+  struct TSuplaClientData *scd = (struct TSuplaClientData *)_scd;
 
   if (scd->cfg.cb_on_min_version_required) {
     scd->cfg.cb_on_min_version_required(scd, scd->cfg.user_data, call_type,
@@ -97,7 +99,7 @@ void supla_client_on_min_version_required(void *_srpc,
   }
 }
 
-void supla_client_on_version_error(TSuplaClientData *scd,
+void supla_client_on_version_error(struct TSuplaClientData *scd,
                                    TSDC_SuplaVersionError *version_error) {
   supla_log(LOG_ERR,
             "Protocol version error. Server doesn't support this client. "
@@ -114,26 +116,24 @@ void supla_client_on_version_error(TSuplaClientData *scd,
   supla_client_disconnect(scd);
 }
 
-char supla_client_registered(void *_suplaclient) {
-  TSuplaClientData *scd = (TSuplaClientData *)_suplaclient;
+char supla_client_registered(struct TSuplaClientData *suplaClient) {
   char result;
-  lck_lock(scd->lck);
-  result = scd->registered;
-  lck_unlock(scd->lck);
+  lck_lock(suplaClient->lck);
+  result = suplaClient->registered;
+  lck_unlock(suplaClient->lck);
 
   return result;
 }
 
-void supla_client_set_registered(void *_suplaclient, char registered) {
-  TSuplaClientData *scd = (TSuplaClientData *)_suplaclient;
+void supla_client_set_registered(struct TSuplaClientData *suplaClient, char registered) {
 
-  lck_lock(scd->lck);
-  scd->registered = registered;
-  lck_unlock(scd->lck);
+  lck_lock(suplaClient->lck);
+  suplaClient->registered = registered;
+  lck_unlock(suplaClient->lck);
 }
 
 void supla_client_on_register_result(
-    TSuplaClientData *scd,
+    struct TSuplaClientData *scd,
     TSC_SuplaRegisterClientResult_B *register_client_result) {
   if (register_client_result->result_code == SUPLA_RESULTCODE_TRUE) {
     supla_client_set_registered(scd, 1);
@@ -203,7 +203,7 @@ void supla_client_set_str(char *str, unsigned int *size, unsigned int max) {
     str[0] = 0;
 }
 
-void supla_client_location_update(TSuplaClientData *scd,
+void supla_client_location_update(struct TSuplaClientData *scd,
                                   TSC_SuplaLocation *location, char gn) {
   supla_client_set_str(location->Caption, &location->CaptionSize,
                        SUPLA_LOCATION_CAPTION_MAXSIZE);
@@ -214,7 +214,7 @@ void supla_client_location_update(TSuplaClientData *scd,
   if (gn == 1) srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_locationpack_update(TSuplaClientData *scd,
+void supla_client_locationpack_update(struct TSuplaClientData *scd,
                                       TSC_SuplaLocationPack *pack) {
   int a;
 
@@ -224,7 +224,7 @@ void supla_client_locationpack_update(TSuplaClientData *scd,
   srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_channel_update_c(TSuplaClientData *scd,
+void supla_client_channel_update_c(struct TSuplaClientData *scd,
                                    TSC_SuplaChannel_C *channel, char gn) {
   supla_client_set_str(channel->Caption, &channel->CaptionSize,
                        SUPLA_CHANNEL_CAPTION_MAXSIZE);
@@ -235,7 +235,7 @@ void supla_client_channel_update_c(TSuplaClientData *scd,
   if (gn == 1) srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_channelgroup_update(TSuplaClientData *scd,
+void supla_client_channelgroup_update(struct TSuplaClientData *scd,
                                       TSC_SuplaChannelGroup_B *channel_group,
                                       char gn) {
   supla_client_set_str(channel_group->Caption, &channel_group->CaptionSize,
@@ -247,7 +247,7 @@ void supla_client_channelgroup_update(TSuplaClientData *scd,
   if (gn == 1) srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_channelgroup_pack_update(TSuplaClientData *scd,
+void supla_client_channelgroup_pack_update(struct TSuplaClientData *scd,
                                            TSC_SuplaChannelGroupPack *pack) {
   int a;
 
@@ -272,7 +272,7 @@ void supla_client_channelgroup_pack_update(TSuplaClientData *scd,
 }
 
 void supla_client_channelgroup_pack_update_b(
-    TSuplaClientData *scd, TSC_SuplaChannelGroupPack_B *pack) {
+    struct TSuplaClientData *scd, TSC_SuplaChannelGroupPack_B *pack) {
   int a;
 
   for (a = 0; a < pack->count; a++)
@@ -282,7 +282,7 @@ void supla_client_channelgroup_pack_update_b(
 }
 
 void supla_client_channelgroup_relation_update(
-    TSuplaClientData *scd, TSC_SuplaChannelGroupRelation *channelgroup_relation,
+    struct TSuplaClientData *scd, TSC_SuplaChannelGroupRelation *channelgroup_relation,
     char gn) {
   if (scd->cfg.cb_channelgroup_relation_update)
     scd->cfg.cb_channelgroup_relation_update(scd, scd->cfg.user_data,
@@ -292,7 +292,7 @@ void supla_client_channelgroup_relation_update(
 }
 
 void supla_client_channelgroup_relation_pack_update(
-    TSuplaClientData *scd, TSC_SuplaChannelGroupRelationPack *pack) {
+    struct TSuplaClientData *scd, TSC_SuplaChannelGroupRelationPack *pack) {
   int a;
 
   for (a = 0; a < pack->count; a++)
@@ -301,7 +301,7 @@ void supla_client_channelgroup_relation_pack_update(
   srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_channel_value_update(TSuplaClientData *scd,
+void supla_client_channel_value_update(struct TSuplaClientData *scd,
                                        TSC_SuplaChannelValue *channel_value,
                                        char gn) {
   if (scd->cfg.cb_channel_value_update)
@@ -313,14 +313,14 @@ void supla_client_channel_value_update(TSuplaClientData *scd,
 }
 
 void supla_client_channel_extendedvalue_update(
-    TSuplaClientData *scd,
+    struct TSuplaClientData *scd,
     TSC_SuplaChannelExtendedValue *channel_extendedvalue) {
   if (scd->cfg.cb_channel_extendedvalue_update)
     scd->cfg.cb_channel_extendedvalue_update(scd, scd->cfg.user_data,
                                              channel_extendedvalue);
 }
 
-void supla_client_channelvalue_pack_update(TSuplaClientData *scd,
+void supla_client_channelvalue_pack_update(struct TSuplaClientData *scd,
                                            TSC_SuplaChannelValuePack *pack) {
   int a;
 
@@ -334,7 +334,7 @@ void supla_client_channelvalue_pack_update(TSuplaClientData *scd,
 }
 
 void supla_client_channelextendedvalue_pack_update(
-    TSuplaClientData *scd, TSC_SuplaChannelExtendedValuePack *pack) {
+    struct TSuplaClientData *scd, TSC_SuplaChannelExtendedValuePack *pack) {
   TSC_SuplaChannelExtendedValue ev;
   int n = 0;
   int offset = 0;
@@ -395,7 +395,7 @@ void supla_client_channel_b2c(TSC_SuplaChannel_B *b, TSC_SuplaChannel_C *c) {
   memcpy(c->Caption, b->Caption, SUPLA_CHANNEL_CAPTION_MAXSIZE);
 }
 
-void supla_client_channel_update_b(TSuplaClientData *scd,
+void supla_client_channel_update_b(struct TSuplaClientData *scd,
                                    TSC_SuplaChannel_B *channel_b, char gn) {
   TSC_SuplaChannel_C channel_c;
   memset(&channel_c, 0, sizeof(TSC_SuplaChannel_C));
@@ -404,7 +404,7 @@ void supla_client_channel_update_b(TSuplaClientData *scd,
   supla_client_channel_update_c(scd, &channel_c, gn);
 }
 
-void supla_client_channel_update(TSuplaClientData *scd,
+void supla_client_channel_update(struct TSuplaClientData *scd,
                                  TSC_SuplaChannel *channel, char gn) {
   TSC_SuplaChannel_B channel_b;
   memset(&channel_b, 0, sizeof(TSC_SuplaChannel_B));
@@ -413,7 +413,7 @@ void supla_client_channel_update(TSuplaClientData *scd,
   supla_client_channel_update_b(scd, &channel_b, gn);
 }
 
-void supla_client_channelpack_update(TSuplaClientData *scd,
+void supla_client_channelpack_update(struct TSuplaClientData *scd,
                                      TSC_SuplaChannelPack *pack) {
   int a;
 
@@ -423,7 +423,7 @@ void supla_client_channelpack_update(TSuplaClientData *scd,
   srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_channelpack_update_b(TSuplaClientData *scd,
+void supla_client_channelpack_update_b(struct TSuplaClientData *scd,
                                        TSC_SuplaChannelPack_B *pack) {
   int a;
 
@@ -433,7 +433,7 @@ void supla_client_channelpack_update_b(TSuplaClientData *scd,
   srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_channelpack_update_c(TSuplaClientData *scd,
+void supla_client_channelpack_update_c(struct TSuplaClientData *scd,
                                        TSC_SuplaChannelPack_C *pack) {
   int a;
 
@@ -443,7 +443,7 @@ void supla_client_channelpack_update_c(TSuplaClientData *scd,
   srpc_cs_async_get_next(scd->srpc);
 }
 
-void supla_client_on_event(TSuplaClientData *scd, TSC_SuplaEvent *event) {
+void supla_client_on_event(struct TSuplaClientData *scd, TSC_SuplaEvent *event) {
   supla_client_set_str(event->SenderName, &event->SenderNameSize,
                        SUPLA_SENDER_NAME_MAXSIZE);
 
@@ -452,7 +452,7 @@ void supla_client_on_event(TSuplaClientData *scd, TSC_SuplaEvent *event) {
 }
 
 void supla_client_on_oauth_token_request_result(
-    TSuplaClientData *scd, TSC_OAuthTokenRequestResult *result) {
+    struct TSuplaClientData *scd, TSC_OAuthTokenRequestResult *result) {
   supla_client_set_str(result->Token.Token, &result->Token.TokenSize,
                        SUPLA_OAUTH_TOKEN_MAXSIZE);
 
@@ -465,7 +465,7 @@ void supla_client_on_remote_call_received(void *_srpc, unsigned int rr_id,
                                           unsigned char proto_version) {
   TsrpcReceivedData rd;
   char result;
-  TSuplaClientData *scd = (TSuplaClientData *)_scd;
+  struct TSuplaClientData *scd = (struct TSuplaClientData *)_scd;
 
   gettimeofday(&scd->last_call_recv, NULL);
 
@@ -661,8 +661,8 @@ void supla_client_cfginit(TSuplaClientCfg *sclient_cfg) {
 }
 
 void *supla_client_init(TSuplaClientCfg *sclient_cfg) {
-  TSuplaClientData *scd = malloc(sizeof(TSuplaClientData));
-  memset(scd, 0, sizeof(TSuplaClientData));
+  struct TSuplaClientData *scd = malloc(sizeof(struct TSuplaClientData));
+  memset(scd, 0, sizeof(struct TSuplaClientData));
   memcpy(&scd->cfg, sclient_cfg, sizeof(TSuplaClientCfg));
 
   scd->lck = lck_init();
@@ -687,114 +687,109 @@ void *supla_client_init(TSuplaClientCfg *sclient_cfg) {
   return scd;
 }
 
-void supla_client_clean(void *_suplaclient) {
+void supla_client_clean(struct TSuplaClientData *suplaClient) {
   void *eh;
   void *srpc;
 
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
-
-  if (suplaclient) {
-    if (suplaclient->eh) {
-      eh = suplaclient->eh;
-      suplaclient->eh = NULL;
+  if (suplaClient) {
+    if (suplaClient->eh) {
+      eh = suplaClient->eh;
+      suplaClient->eh = NULL;
       eh_free(eh);
     }
 
-    if (suplaclient->srpc) {
-      srpc = suplaclient->srpc;
-      suplaclient->srpc = NULL;
+    if (suplaClient->srpc) {
+      srpc = suplaClient->srpc;
+      suplaClient->srpc = NULL;
       srpc_free(srpc);
     }
   }
 }
 
-void supla_client_free(void *_suplaclient) {
-  if (_suplaclient != NULL) {
-    supla_client_disconnect(_suplaclient);
-    supla_client_clean(_suplaclient);
+void supla_client_free(struct TSuplaClientData *suplaClient) {
+  if (suplaClient != NULL) {
+    supla_client_disconnect(suplaClient);
+    supla_client_clean(suplaClient);
 
-    TSuplaClientData *scd = (TSuplaClientData *)_suplaclient;
+    if (suplaClient->cfg.host)
+        free(suplaClient->cfg.host);
 
-    if (scd->cfg.host) free(scd->cfg.host);
+    ssocket_free(suplaClient->ssd);
+    lck_free(suplaClient->lck);
 
-    ssocket_free(scd->ssd);
-    lck_free(scd->lck);
-
-    free(_suplaclient);
+    free(suplaClient);
   }
 }
 
-int supla_client_get_id(void *_suplaclient) {
-  return ((TSuplaClientData *)_suplaclient)->client_id;
+int supla_client_get_id(struct TSuplaClientData *suplaClient) {
+  return suplaClient->client_id;
 }
 
-char supla_client_connected(void *_suplaclient) {
-  return ((TSuplaClientData *)_suplaclient)->connected == 1;
+char supla_client_connected(struct TSuplaClientData *suplaClient) {
+  return suplaClient->connected == 1;
 }
 
-void supla_client_disconnect(void *_suplaclient) {
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
+void supla_client_disconnect(struct TSuplaClientData *suplaClient) {
 
-  if (supla_client_connected(_suplaclient)) {
-    suplaclient->connected = 0;
+  if (supla_client_connected(suplaClient)) {
+    suplaClient->connected = 0;
 
-    supla_client_set_registered(_suplaclient, 0);
+    supla_client_set_registered(suplaClient, 0);
 
-    ssocket_supla_socket__close(suplaclient->ssd);
+    ssocket_supla_socket__close(suplaClient->ssd);
 
-    if (suplaclient->cfg.cb_on_disconnected)
-      suplaclient->cfg.cb_on_disconnected(_suplaclient,
-                                          suplaclient->cfg.user_data);
+    if (suplaClient->cfg.cb_on_disconnected)
+      suplaClient->cfg.cb_on_disconnected(suplaClient,
+                                          suplaClient->cfg.user_data);
   }
 }
 
-char supla_client_connect(void *_suplaclient) {
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
-  supla_client_disconnect(_suplaclient);
+char supla_client_connect(struct TSuplaClientData *suplaClient) {
+  supla_client_disconnect(suplaClient);
 
-  supla_client_clean(_suplaclient);
+  supla_client_clean(suplaClient);
 
   int err = 0;
 
-  if (ssocket_client_connect(suplaclient->ssd, NULL, &err) == 1) {
-    suplaclient->eh = eh_init();
+  if (ssocket_client_connect(suplaClient->ssd, NULL, &err) == 1) {
+    suplaClient->eh = eh_init();
     TsrpcParams srpc_params;
     srpc_params_init(&srpc_params);
-    srpc_params.user_params = _suplaclient;
+    srpc_params.user_params = suplaClient;
     srpc_params.data_read = &supla_client_socket_read;
     srpc_params.data_write = &supla_client_socket_write;
     srpc_params.on_remote_call_received = &supla_client_on_remote_call_received;
     srpc_params.before_async_call = &supla_client_before_async_call;
     srpc_params.on_min_version_required = &supla_client_on_min_version_required;
-    srpc_params.eh = suplaclient->eh;
-    suplaclient->srpc = srpc_init(&srpc_params);
+    srpc_params.eh = suplaClient->eh;
+    suplaClient->srpc = srpc_init(&srpc_params);
 
-    if (suplaclient->cfg.protocol_version > 0) {
-      srpc_set_proto_version(suplaclient->srpc,
-                             suplaclient->cfg.protocol_version);
+    if (suplaClient->cfg.protocol_version > 0) {
+      srpc_set_proto_version(suplaClient->srpc,
+                             suplaClient->cfg.protocol_version);
     }
 
-    eh_add_fd(suplaclient->eh, ssocket_get_fd(suplaclient->ssd));
-    suplaclient->connected = 1;
+    eh_add_fd(suplaClient->eh, ssocket_get_fd(suplaClient->ssd));
+    suplaClient->connected = 1;
 
-    supla_client_set_registered(_suplaclient, 0);
+    supla_client_set_registered(suplaClient, 0);
 
-    if (suplaclient->cfg.cb_on_connected)
-      suplaclient->cfg.cb_on_connected(_suplaclient,
-                                       suplaclient->cfg.user_data);
+    if (suplaClient->cfg.cb_on_connected)
+      suplaClient->cfg.cb_on_connected(suplaClient,
+                                       suplaClient->cfg.user_data);
 
     return 1;
 
   } else {
-    if (suplaclient->cfg.cb_on_connerror)
-      suplaclient->cfg.cb_on_connerror(_suplaclient, suplaclient->cfg.user_data,
+    if (suplaClient->cfg.cb_on_connerror)
+      suplaClient->cfg.cb_on_connerror(suplaClient, suplaClient->cfg.user_data,
                                        err);
   }
 
   return 0;
 }
 
-void supla_client_register(TSuplaClientData *suplaclient) {
+void supla_client_register(struct TSuplaClientData *suplaclient) {
   if (suplaclient->cfg.cb_on_registering)
     suplaclient->cfg.cb_on_registering(suplaclient, suplaclient->cfg.user_data);
 
@@ -883,75 +878,72 @@ void supla_client_register(TSuplaClientData *suplaclient) {
   }
 }
 
-void supla_client_ping(TSuplaClientData *suplaclient) {
+void supla_client_ping(struct TSuplaClientData *suplaClient) {
   struct timeval now;
 
-  if (suplaclient->server_activity_timeout > 0) {
+  if (suplaClient->server_activity_timeout > 0) {
     gettimeofday(&now, NULL);
 
-    int server_activity_timeout = suplaclient->server_activity_timeout - 10;
+    int server_activity_timeout = suplaClient->server_activity_timeout - 10;
 
-    if (now.tv_sec - suplaclient->last_ping.tv_sec >= 2 &&
-        ((now.tv_sec - suplaclient->last_call_sent.tv_sec) >=
+    if (now.tv_sec - suplaClient->last_ping.tv_sec >= 2 &&
+        ((now.tv_sec - suplaClient->last_call_sent.tv_sec) >=
              server_activity_timeout ||
-         (now.tv_sec - suplaclient->last_call_recv.tv_sec) >=
+         (now.tv_sec - suplaClient->last_call_recv.tv_sec) >=
              server_activity_timeout)) {
-      gettimeofday(&suplaclient->last_ping, NULL);
-      srpc_dcs_async_ping_server(suplaclient->srpc);
+      gettimeofday(&suplaClient->last_ping, NULL);
+      srpc_dcs_async_ping_server(suplaClient->srpc);
     }
   }
 }
 
-char supla_client_iterate(void *_suplaclient, int wait_usec) {
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
+char supla_client_iterate(struct TSuplaClientData *suplaClient, int wait_usec) {
 
-  if (supla_client_connected(_suplaclient) == 0) return 0;
+  if (supla_client_connected(suplaClient) == 0) return 0;
 
-  if (supla_client_registered(_suplaclient) == 0) {
-    supla_client_set_registered(_suplaclient, -1);
-    supla_client_register(suplaclient);
+  if (supla_client_registered(suplaClient) == 0) {
+    supla_client_set_registered(suplaClient, -1);
+    supla_client_register(suplaClient);
 
-  } else if (supla_client_registered(_suplaclient) == 1) {
-    supla_client_ping(suplaclient);
+  } else if (supla_client_registered(suplaClient) == 1) {
+    supla_client_ping(suplaClient);
   }
 
-  if (suplaclient->srpc != NULL &&
-      srpc_iterate(suplaclient->srpc) == SUPLA_RESULT_FALSE) {
-    supla_client_disconnect(_suplaclient);
+  if (suplaClient->srpc != NULL &&
+      srpc_iterate(suplaClient->srpc) == SUPLA_RESULT_FALSE) {
+    supla_client_disconnect(suplaClient);
     return 0;
   }
 
-  if (supla_client_connected(_suplaclient) == 1 && suplaclient->eh != NULL) {
-    eh_wait(suplaclient->eh, wait_usec);
+  if (supla_client_connected(suplaClient) == 1 && suplaClient->eh != NULL) {
+    eh_wait(suplaClient->eh, wait_usec);
   }
 
   return 1;
 }
 
-void supla_client_raise_event(void *_suplaclient) {
-  eh_raise_event(((TSuplaClientData *)_suplaclient)->eh);
+void supla_client_raise_event(struct TSuplaClientData *suplaClient) {
+  eh_raise_event(suplaClient->eh);
 }
 
-void *supla_client_get_userdata(void *_suplaclient) {
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
-  return suplaclient->cfg.user_data;
+void *supla_client_get_userdata(struct TSuplaClientData *suplaClient) {
+  return suplaClient->cfg.user_data;
 }
 
-char supla_client_send_raw_value(void *_suplaclient, int ID,
+char supla_client_send_raw_value(struct TSuplaClientData *suplaClient, int ID,
                                  char value[SUPLA_CHANNELVALUE_SIZE],
                                  char Target) {
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
   char result = 0;
 
-  lck_lock(suplaclient->lck);
-  if (supla_client_registered(_suplaclient) == 1) {
-    if (srpc_get_proto_version(suplaclient->srpc) >= 9) {
+  lck_lock(suplaClient->lck);
+  if (supla_client_registered(suplaClient) == 1) {
+    if (srpc_get_proto_version(suplaClient->srpc) >= 9) {
       TCS_SuplaNewValue _value;
       memset(&_value, 0, sizeof(TCS_SuplaNewValue));
       _value.Id = ID;
       _value.Target = Target;
       memcpy(_value.value, value, SUPLA_CHANNELVALUE_SIZE);
-      result = srpc_cs_async_set_value(suplaclient->srpc, &_value) ==
+      result = srpc_cs_async_set_value(suplaClient->srpc, &_value) ==
                        SUPLA_RESULT_FALSE
                    ? 0
                    : 1;
@@ -960,24 +952,24 @@ char supla_client_send_raw_value(void *_suplaclient, int ID,
       memset(&_value, 0, sizeof(TCS_SuplaChannelNewValue_B));
       _value.ChannelId = ID;
       memcpy(_value.value, value, SUPLA_CHANNELVALUE_SIZE);
-      result = srpc_cs_async_set_channel_value_b(suplaclient->srpc, &_value) ==
+      result = srpc_cs_async_set_channel_value_b(suplaClient->srpc, &_value) ==
                        SUPLA_RESULT_FALSE
                    ? 0
                    : 1;
     }
   }
-  lck_unlock(suplaclient->lck);
+  lck_unlock(suplaClient->lck);
 
   return result;
 }
 
-char supla_client_open(void *_suplaclient, int ID, char group, char open) {
+char supla_client_open(struct TSuplaClientData *suplaClient, int ID, char group, char open) {
   char value[SUPLA_CHANNELVALUE_SIZE];
   memset(value, 0, SUPLA_CHANNELVALUE_SIZE);
   value[0] = open;
 
   return supla_client_send_raw_value(
-      _suplaclient, ID, value, group > 0 ? SUPLA_NEW_VALUE_TARGET_GROUP
+      suplaClient, ID, value, group > 0 ? SUPLA_NEW_VALUE_TARGET_GROUP
                                          : SUPLA_NEW_VALUE_TARGET_CHANNEL);
 }
 
@@ -990,14 +982,13 @@ void _supla_client_set_rgbw_value(char *value, int color, char color_brightness,
   value[4] = (char)((color & 0x00FF0000) >> 16);  // RED
 }
 
-char supla_client_set_rgbw(void *_suplaclient, int ID, char group, int color,
+char supla_client_set_rgbw(struct TSuplaClientData* suplaClient, int ID, char group, int color,
                            char color_brightness, char brightness) {
-  TSuplaClientData *suplaclient = (TSuplaClientData *)_suplaclient;
   char result = 0;
 
-  lck_lock(suplaclient->lck);
-  if (supla_client_registered(_suplaclient) == 1) {
-    if (srpc_get_proto_version(suplaclient->srpc) >= 9) {
+  lck_lock(suplaClient->lck);
+  if (supla_client_registered(suplaClient) == 1) {
+    if (srpc_get_proto_version(suplaClient->srpc) >= 9) {
       TCS_SuplaNewValue value;
       memset(&value, 0, sizeof(TCS_SuplaNewValue));
       _supla_client_set_rgbw_value(value.value, color, color_brightness,
@@ -1005,7 +996,7 @@ char supla_client_set_rgbw(void *_suplaclient, int ID, char group, int color,
       value.Id = ID;
       value.Target = group > 0 ? SUPLA_NEW_VALUE_TARGET_GROUP
                                : SUPLA_NEW_VALUE_TARGET_CHANNEL;
-      result = srpc_cs_async_set_value(suplaclient->srpc, &value) ==
+      result = srpc_cs_async_set_value(suplaClient->srpc, &value) ==
                        SUPLA_RESULT_FALSE
                    ? 0
                    : 1;
@@ -1016,51 +1007,47 @@ char supla_client_set_rgbw(void *_suplaclient, int ID, char group, int color,
                                    brightness);
       value.ChannelId = ID;
 
-      result = srpc_cs_async_set_channel_value_b(suplaclient->srpc, &value) ==
+      result = srpc_cs_async_set_channel_value_b(suplaClient->srpc, &value) ==
                        SUPLA_RESULT_FALSE
                    ? 0
                    : 1;
     }
   }
-  lck_unlock(suplaclient->lck);
+  lck_unlock(suplaClient->lck);
 
   return result;
 }
 
-char supla_client_set_dimmer(void *_suplaclient, int ID, char group,
+char supla_client_set_dimmer(struct TSuplaClientData *suplaClient, int ID, char group,
                              char brightness) {
-  return supla_client_set_rgbw(_suplaclient, ID, group, 0, 0, brightness);
+  return supla_client_set_rgbw(suplaClient, ID, group, 0, 0, brightness);
 }
 
-char supla_client_get_registration_enabled(void *_suplaclient) {
-  return srpc_dcs_async_get_registration_enabled(
-      ((TSuplaClientData *)_suplaclient)->srpc);
+char supla_client_get_registration_enabled(struct TSuplaClientData *suplaClient) {
+  return srpc_dcs_async_get_registration_enabled(suplaClient->srpc);
 }
 
-unsigned char supla_client_get_proto_version(void *_suplaclient) {
-  return srpc_get_proto_version(((TSuplaClientData *)_suplaclient)->srpc);
+unsigned char supla_client_get_proto_version(struct TSuplaClientData *suplaClient) {
+  return srpc_get_proto_version(suplaClient->srpc);
 }
 
-char supla_client_oauth_token_request(void *_suplaclient) {
-  return srpc_cs_async_oauth_token_request(
-             ((TSuplaClientData *)_suplaclient)->srpc) > 0;
+char supla_client_oauth_token_request(struct TSuplaClientData *suplaClient) {
+  return srpc_cs_async_oauth_token_request(suplaClient->srpc) > 0;
 }
 
-char supla_client_superuser_authorization_request(void *_suplaclient,
+char supla_client_superuser_authorization_request(struct TSuplaClientData *suplaClient,
                                                   char *email, char *password) {
   TCS_SuperUserAuthorizationRequest request;
   snprintf(
       request.Email, SUPLA_EMAIL_MAXSIZE, "%s",
-      email == NULL ? ((TSuplaClientData *)_suplaclient)->cfg.Email : email);
+      email == NULL ? suplaClient->cfg.Email : email);
   snprintf(request.Password, SUPLA_PASSWORD_MAXSIZE, "%s", password);
 
-  return srpc_cs_async_superuser_authorization_request(
-      ((TSuplaClientData *)_suplaclient)->srpc, &request);
+  return srpc_cs_async_superuser_authorization_request(suplaClient->srpc, &request);
 }
 
-char supla_client_device_calcfg_request(void *_suplaclient,
+char supla_client_device_calcfg_request(struct TSuplaClientData *suplaClient,
                                         TCS_DeviceCalCfgRequest *request) {
   if (request == NULL) return 0;
-  return srpc_cs_async_device_calcfg_request(
-      ((TSuplaClientData *)_suplaclient)->srpc, request);
+  return srpc_cs_async_device_calcfg_request(suplaClient->srpc, request);
 }
