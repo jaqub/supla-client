@@ -667,19 +667,21 @@ void supla_client_clean(struct TSuplaClientData *suplaClient)
   suplaClient->srpc = NULL;
 }
 
-void supla_client_free(struct TSuplaClientData *suplaClient) {
-  if (suplaClient != NULL) {
-    supla_client_disconnect(suplaClient);
-    supla_client_clean(suplaClient);
+void supla_client_free(struct TSuplaClientData *suplaClient)
+{
+  if (suplaClient == NULL)
+    return;
 
-    if (suplaClient->cfg.host)
-        free(suplaClient->cfg.host);
+  supla_client_disconnect(suplaClient);
+  supla_client_clean(suplaClient);
 
-    ssocket_free(suplaClient->ssd);
-    lck_free(suplaClient->lck);
+  if (suplaClient->cfg.host)
+      free(suplaClient->cfg.host);
 
-    free(suplaClient);
-  }
+  ssocket_free(suplaClient->ssd);
+  lck_free(suplaClient->lck);
+
+  free(suplaClient);
 }
 
 int supla_client_get_id(struct TSuplaClientData *suplaClient) {
