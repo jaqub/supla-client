@@ -628,7 +628,8 @@ void supla_client_cfginit(TSuplaClientCfg *sclient_cfg) {
   sclient_cfg->iterate_wait_usec = 1000000;
 }
 
-struct TSuplaClientData* supla_client_init(TSuplaClientCfg *sclient_cfg) {
+struct TSuplaClientData* supla_client_init(TSuplaClientCfg *sclient_cfg)
+{
   struct TSuplaClientData *scd = malloc(sizeof(struct TSuplaClientData));
   memset(scd, 0, sizeof(struct TSuplaClientData));
   memcpy(&scd->cfg, sclient_cfg, sizeof(TSuplaClientCfg));
@@ -689,12 +690,14 @@ int supla_client_get_id(struct TSuplaClientData *suplaClient) {
 }
 
 char supla_client_connected(struct TSuplaClientData *suplaClient) {
-  return suplaClient->connected == 1;
+  return suplaClient->connected;
 }
 
 void supla_client_disconnect(struct TSuplaClientData *suplaClient) {
 
-  if (supla_client_connected(suplaClient)) {
+  if (!supla_client_connected(suplaClient))
+    return;
+
     suplaClient->connected = 0;
 
     supla_client_set_registered(suplaClient, 0);
@@ -702,9 +705,7 @@ void supla_client_disconnect(struct TSuplaClientData *suplaClient) {
     ssocket_supla_socket__close(suplaClient->ssd);
 
     if (suplaClient->cfg.cb_on_disconnected)
-      suplaClient->cfg.cb_on_disconnected(suplaClient,
-                                          suplaClient->cfg.user_data);
-  }
+      suplaClient->cfg.cb_on_disconnected(suplaClient, suplaClient->cfg.user_data);
 }
 
 char supla_client_connect(struct TSuplaClientData *suplaClient) {
@@ -716,6 +717,7 @@ char supla_client_connect(struct TSuplaClientData *suplaClient) {
 
   if (ssocket_client_connect(suplaClient->ssd, NULL, &err) == 1) {
     suplaClient->eh = eh_init();
+
     TsrpcParams srpc_params;
     srpc_params_init(&srpc_params);
     srpc_params.user_params = suplaClient;
@@ -725,11 +727,11 @@ char supla_client_connect(struct TSuplaClientData *suplaClient) {
     srpc_params.before_async_call = &supla_client_before_async_call;
     srpc_params.on_min_version_required = &supla_client_on_min_version_required;
     srpc_params.eh = suplaClient->eh;
+
     suplaClient->srpc = srpc_init(&srpc_params);
 
     if (suplaClient->cfg.protocol_version > 0) {
-      srpc_set_proto_version(suplaClient->srpc,
-                             suplaClient->cfg.protocol_version);
+      srpc_set_proto_version(suplaClient->srpc, suplaClient->cfg.protocol_version);
     }
 
     eh_add_fd(suplaClient->eh, ssocket_get_fd(suplaClient->ssd));
