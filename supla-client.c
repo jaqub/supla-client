@@ -651,23 +651,20 @@ struct TSuplaClientData* supla_client_init(TSuplaClientCfg *sclient_cfg) {
   return scd;
 }
 
-void supla_client_clean(struct TSuplaClientData *suplaClient) {
-  void *eh;
-  void *srpc;
+void supla_client_clean(struct TSuplaClientData *suplaClient)
+{
+  if (suplaClient == NULL)
+    return;
 
-  if (suplaClient) {
-    if (suplaClient->eh) {
-      eh = suplaClient->eh;
-      suplaClient->eh = NULL;
-      eh_free(eh);
-    }
+  if (suplaClient->eh)
+    eh_free(suplaClient->eh);
 
-    if (suplaClient->srpc) {
-      srpc = suplaClient->srpc;
-      suplaClient->srpc = NULL;
-      srpc_free(srpc);
-    }
-  }
+  suplaClient->eh = NULL;
+
+  if (suplaClient->srpc)
+    srpc_free(suplaClient->srpc);
+
+  suplaClient->srpc = NULL;
 }
 
 void supla_client_free(struct TSuplaClientData *suplaClient) {
