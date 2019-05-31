@@ -5,6 +5,9 @@ project(scli C)
 #add_definitions("-std=c++11 -Wall")
 
 aux_source_directory(. SRC_LIST)
+aux_source_directory(./slib/ SRC_LIST)
+
+include_directories(./slib/)
 
 # List of librarires to link with executable
 set(LIBS pthread crypto ssl )
