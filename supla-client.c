@@ -43,34 +43,6 @@ struct TSuplaClientData {
   TSuplaClientCfg cfg;
 };
 
-#ifdef _WIN32
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <stdint.h>
-
-
-// http://stackoverflow.com/questions/10905892/equivalent-of-gettimeday-for-windows
-int gettimeofday(struct timeval *tp, struct timezone *tzp) {
-  // Note: some broken versions only have 8 trailing zero's, the correct epoch
-  // has 9 trailing zero's
-  static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
-
-  SYSTEMTIME system_time;
-  FILETIME file_time;
-  uint64_t time;
-
-  GetSystemTime(&system_time);
-  SystemTimeToFileTime(&system_time, &file_time);
-  time = ((uint64_t)file_time.dwLowDateTime);
-  time += ((uint64_t)file_time.dwHighDateTime) << 32;
-
-  tp->tv_sec = (long)((time - EPOCH) / 10000000L);
-  tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
-  return 0;
-}
-#endif
-
 int supla_client_socket_read(void *buf, int count, void *scd) {
   struct TSuplaClientData *clientData = scd;
   return ssocket_read(clientData->ssd, NULL, buf, count);
@@ -653,11 +625,7 @@ void supla_client_cfginit(TSuplaClientCfg *sclient_cfg) {
   sclient_cfg->tcp_port = 2015;
   sclient_cfg->ssl_port = 2016;
   sclient_cfg->ssl_enabled = 1;
-#ifdef _WIN32
-  sclient_cfg->iterate_wait_usec = 1000;
-#else
   sclient_cfg->iterate_wait_usec = 1000000;
-#endif
 }
 
 struct TSuplaClientData* supla_client_init(TSuplaClientCfg *sclient_cfg) {
@@ -672,11 +640,7 @@ struct TSuplaClientData* supla_client_init(TSuplaClientCfg *sclient_cfg) {
   scd->cfg.host = NULL;
 
   if (sclient_cfg->host != NULL && strlen(sclient_cfg->host) > 0) {
-#ifdef _WIN32
-    scd->cfg.host = _strdup(sclient_cfg->host);
-#else
     scd->cfg.host = strdup(sclient_cfg->host);
-#endif
   }
 
   scd->ssd = ssocket_client_init(
@@ -796,81 +760,42 @@ static void supla_client_register(struct TSuplaClientData *suplaClient)
 
   if (strnlen(suplaClient->cfg.Email, SUPLA_EMAIL_MAXSIZE) > 0 &&
       srpc_call_allowed(suplaClient->srpc, SUPLA_CS_CALL_REGISTER_CLIENT_C)) {
+
     TCS_SuplaRegisterClient_C src;
     memset(&src, 0, sizeof(TCS_SuplaRegisterClient_C));
 
-#ifdef _WIN32
-    _snprintf_s(src.Email, SUPLA_EMAIL_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.Email);
-    _snprintf_s(src.Name, SUPLA_CLIENT_NAME_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.Name);
-    _snprintf_s(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.SoftVer);
-    _snprintf_s(src.ServerName, SUPLA_SERVER_NAME_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.host);
-#else
     snprintf(src.Email, SUPLA_EMAIL_MAXSIZE, "%s", suplaClient->cfg.Email);
     snprintf(src.Name, SUPLA_CLIENT_NAME_MAXSIZE, "%s", suplaClient->cfg.Name);
-    snprintf(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, "%s",
-             suplaClient->cfg.SoftVer);
-    snprintf(src.ServerName, SUPLA_SERVER_NAME_MAXSIZE, "%s",
-             suplaClient->cfg.host);
-#endif
+    snprintf(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, "%s", suplaClient->cfg.SoftVer);
+    snprintf(src.ServerName, SUPLA_SERVER_NAME_MAXSIZE, "%s", suplaClient->cfg.host);
 
     memcpy(src.AuthKey, suplaClient->cfg.AuthKey, SUPLA_AUTHKEY_SIZE);
     memcpy(src.GUID, suplaClient->cfg.clientGUID, SUPLA_GUID_SIZE);
     srpc_cs_async_registerclient_c(suplaClient->srpc, &src);
 
-  } else if (srpc_call_allowed(suplaClient->srpc,
-                               SUPLA_CS_CALL_REGISTER_CLIENT_B)) {
+  } else if (srpc_call_allowed(suplaClient->srpc, SUPLA_CS_CALL_REGISTER_CLIENT_B)) {
     TCS_SuplaRegisterClient_B src;
     memset(&src, 0, sizeof(TCS_SuplaRegisterClient_B));
 
     src.AccessID = suplaClient->cfg.AccessID;
 
-#ifdef _WIN32
-    _snprintf_s(src.AccessIDpwd, SUPLA_ACCESSID_PWD_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.AccessIDpwd);
-    _snprintf_s(src.Name, SUPLA_CLIENT_NAME_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.Name);
-    _snprintf_s(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.SoftVer);
-    _snprintf_s(src.ServerName, SUPLA_SERVER_NAME_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.host);
-#else
-    snprintf(src.AccessIDpwd, SUPLA_ACCESSID_PWD_MAXSIZE, "%s",
-             suplaClient->cfg.AccessIDpwd);
+    snprintf(src.AccessIDpwd, SUPLA_ACCESSID_PWD_MAXSIZE, "%s", suplaClient->cfg.AccessIDpwd);
     snprintf(src.Name, SUPLA_CLIENT_NAME_MAXSIZE, "%s", suplaClient->cfg.Name);
-    snprintf(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, "%s",
-             suplaClient->cfg.SoftVer);
-    snprintf(src.ServerName, SUPLA_SERVER_NAME_MAXSIZE, "%s",
-             suplaClient->cfg.host);
-#endif
+    snprintf(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, "%s", suplaClient->cfg.SoftVer);
+    snprintf(src.ServerName, SUPLA_SERVER_NAME_MAXSIZE, "%s", suplaClient->cfg.host);
 
     memcpy(src.GUID, suplaClient->cfg.clientGUID, SUPLA_GUID_SIZE);
     srpc_cs_async_registerclient_b(suplaClient->srpc, &src);
 
-  } else if (srpc_call_allowed(suplaClient->srpc,
-                               SUPLA_CS_CALL_REGISTER_CLIENT)) {
+  } else if (srpc_call_allowed(suplaClient->srpc, SUPLA_CS_CALL_REGISTER_CLIENT)) {
     TCS_SuplaRegisterClient src;
     memset(&src, 0, sizeof(TCS_SuplaRegisterClient));
 
     src.AccessID = suplaClient->cfg.AccessID;
 
-#ifdef _WIN32
-    _snprintf_s(src.AccessIDpwd, SUPLA_ACCESSID_PWD_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.AccessIDpwd);
-    _snprintf_s(src.Name, SUPLA_CLIENT_NAME_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.Name);
-    _snprintf_s(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, _TRUNCATE, "%s",
-                suplaClient->cfg.SoftVer);
-#else
-    snprintf(src.AccessIDpwd, SUPLA_ACCESSID_PWD_MAXSIZE, "%s",
-             suplaClient->cfg.AccessIDpwd);
+    snprintf(src.AccessIDpwd, SUPLA_ACCESSID_PWD_MAXSIZE, "%s", suplaClient->cfg.AccessIDpwd);
     snprintf(src.Name, SUPLA_CLIENT_NAME_MAXSIZE, "%s", suplaClient->cfg.Name);
-    snprintf(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, "%s",
-             suplaClient->cfg.SoftVer);
-#endif
+    snprintf(src.SoftVer, SUPLA_SOFTVER_MAXSIZE, "%s", suplaClient->cfg.SoftVer);
 
     memcpy(src.GUID, suplaClient->cfg.clientGUID, SUPLA_GUID_SIZE);
     srpc_cs_async_registerclient(suplaClient->srpc, &src);
@@ -898,14 +823,13 @@ void supla_client_ping(struct TSuplaClientData *suplaClient) {
 
 char supla_client_iterate(struct TSuplaClientData *suplaClient, int wait_usec) {
 
-  if (supla_client_connected(suplaClient) == 0)return 0;
+  if (!supla_client_connected(suplaClient))
+    return 0;
 
-  if (supla_client_registered(suplaClient) == 0) {
-    supla_client_set_registered(suplaClient, -1);
-    supla_client_register(suplaClient);
-
-  } else if (supla_client_registered(suplaClient) == 1) {
+  if (supla_client_registered(suplaClient)) {
     supla_client_ping(suplaClient);
+  } else {
+    supla_client_register(suplaClient);
   }
 
   if (suplaClient->srpc != NULL &&

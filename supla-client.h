@@ -139,7 +139,6 @@ char supla_client_connected(struct TSuplaClientData *suplaClient);
 char supla_client_registered(struct TSuplaClientData *suplaClient);
 void supla_client_disconnect(struct TSuplaClientData *suplaClient);
 
-// For _WIN32 wait_usec mean wait_msec
 char supla_client_iterate(struct TSuplaClientData *suplaClient, int wait_usec);
 void supla_client_raise_event(struct TSuplaClientData *suplaClient);
 void *supla_client_get_userdata(struct TSuplaClientData *suplaClient);
