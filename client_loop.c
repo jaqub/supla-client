@@ -197,7 +197,7 @@ void client_on_device_calcfg_result(void *_suplaclient, void *user_data,
   supla_log(LOG_DEBUG, "Device calcfg result");
 }
 
-void *client_loop_init(void *sthread) {
+struct TSuplaClientData *client_loop_init(void *sthread) {
   TSuplaClientCfg scc;
   supla_client_cfginit(&scc);
 
@@ -244,14 +244,15 @@ void *client_loop_init(void *sthread) {
 }
 
 void client_loop(void *user_data, void *sthread) {
-  void *sclient = client_loop_init(sthread);
+  struct TSuplaClientData *sclient = client_loop_init(sthread);
 
   if (sclient == NULL) {
     st_app_terminate = 1;
     return;
   }
 
-  if (user_data) *(void **)user_data = sclient;
+  if (user_data)
+    *(void **)user_data = sclient;
 
   while (sthread_isterminated(sthread) == 0) {
     supla_log(LOG_INFO, "Connecting...");
@@ -265,7 +266,8 @@ void client_loop(void *user_data, void *sthread) {
     }
   }
 
-  if (user_data) *(void **)user_data = NULL;
+  if (user_data)
+    *(void **)user_data = NULL;
 
   supla_client_free(sclient);
 }

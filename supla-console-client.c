@@ -31,7 +31,8 @@
 int getch() {
   int r;
   unsigned char c;
-  if ((r = read(0, &c, sizeof(c))) < 0) return r;
+  if ((r = read(0, &c, sizeof(c))) < 0)
+    return r;
 
   return c;
 }

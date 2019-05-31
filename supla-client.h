@@ -131,7 +131,7 @@ extern "C" {
 
 void supla_client_cfginit(TSuplaClientCfg *sclient_cfg);
 
-void *supla_client_init(TSuplaClientCfg *sclient_cfg);
+struct TSuplaClientData* supla_client_init(TSuplaClientCfg *sclient_cfg);
 void supla_client_free(struct TSuplaClientData *suplaClient);
 int supla_client_get_id(struct TSuplaClientData *suplaClient);
 char supla_client_connect(struct TSuplaClientData *suplaClient);
