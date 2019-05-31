@@ -824,12 +824,13 @@ void supla_client_ping(struct TSuplaClientData *suplaClient) {
 
 char supla_client_iterate(struct TSuplaClientData *suplaClient, int wait_usec) {
 
-  if (!supla_client_connected(suplaClient))
+  if (supla_client_connected(suplaClient) == 0)
     return 0;
 
   if (supla_client_registered(suplaClient)) {
     supla_client_ping(suplaClient);
   } else {
+    supla_client_set_registered(suplaClient, -1);
     supla_client_register(suplaClient);
   }
 

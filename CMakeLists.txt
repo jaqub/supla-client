@@ -4,6 +4,8 @@ project(scli C)
 
 #add_definitions("-std=c++11 -Wall")
 
+add_definitions("-D__DEBUG")
+
 aux_source_directory(. SRC_LIST)
 aux_source_directory(./slib/ SRC_LIST)
 
